@@ -19,47 +19,44 @@ def draw_circle(event, x, y, flags, param):
         get_score()
 
 
-def get_score():
-    global dartboard_centerX, dartboard_centerY, dartboard_radius, mouseX, mouseY
-    global radius_1, radius_2, radius_3, radius_4, radius_5, radius_6
-    distanceFromCenter = math.sqrt((mouseX - dartboard_centerX)**2 + (mouseY - dartboard_centerY)**2)
+def get_score(**kwargs):
+    distance_from_center = math.sqrt((kwargs['mouseX'] - kwargs['dartboard_center_x']) ** 2 + (kwargs['mouse_y'] - kwargs['dartboard_center_y']) ** 2)
     # 18° per score; 9° offset
-    angle = math.atan2(mouseY - dartboard_centerY, mouseX - dartboard_centerX)
+    angle = math.atan2(kwargs['mouse_y'] - kwargs['dartboard_center_y'], kwargs['mouse_x'] - kwargs['dartboard_center_x'])
     angle = math.degrees(angle)
     angle += (9 + (5 * 18))
     angle = (angle + 360) % 360
     # 20 -> 1 -> 18 -> 4 -> 13 -> 6 -> 10 -> 15 -> 2 -> 17 -> 3 -> 19 -> 7 -> 16 -> 8 -> 11 -> 14 -> 9 -> 12 -> 5
-    scoreArray = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
-    log.debug(f'Distance from center: {distanceFromCenter}; Angle: {angle}')
+    score_array = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
+    log.debug(f'Distance from center: {distance_from_center}; Angle: {angle}')
     multiplier = 1
     # Bull
-    if 0 < distanceFromCenter < radius_1:
+    if 0 < distance_from_center < radius_1:
         log.info(f'Bull: 50')
         return 50
     # Iris
-    elif radius_1 < distanceFromCenter < radius_2:
+    elif radius_1 < distance_from_center < radius_2:
         log.info(f'Iris: 25')
         return 25
     # Triple ring
-    if radius_3 < distanceFromCenter < radius_4:
-        log.info(f'Triple: * 3')
+    if radius_3 < distance_from_center < radius_4:
+        log.info(f'Triple: score * 3')
         multiplier = 3
     # Double ring
-    elif radius_5 < distanceFromCenter < radius_6:
-        log.info(f'Double: * 2')
+    elif radius_5 < distance_from_center < radius_6:
+        log.info(f'Double: score * 2')
         multiplier = 2
     # Out of bounds
-    if radius_6 < distanceFromCenter:
+    if radius_6 < distance_from_center:
         log.info(f'Out of bounds: 0')
         return 0
     # Other
     else:
         for idx, calc in enumerate(range(0, 360, 18)):
             if calc < angle < (calc + 18):
-                score = scoreArray[idx] * multiplier
+                score = score_array[idx] * multiplier
                 log.info(f'Score: {score}')
                 return score
-
 
 
 if __name__ == "__main__":
@@ -112,7 +109,8 @@ if __name__ == "__main__":
             radius_2 = round(((32 / 451) * r))
             radius_1 = round(((12.7 / 451) * r))
 
-            log.debug(f'\nR1: {radius_1}\nR2: {radius_2}\nR3: {radius_3}\nR4: {radius_4}\nR5: {radius_5}\nR6: {radius_6}')
+            log.debug(
+                f'\nR1: {radius_1}\nR2: {radius_2}\nR3: {radius_3}\nR4: {radius_4}\nR5: {radius_5}\nR6: {radius_6}')
 
             cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
             cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
