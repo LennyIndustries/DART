@@ -10,6 +10,7 @@ log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message
 mouseX, mouseY = 0, 0
 dartboard_centerX, dartboard_centerY, dartboard_radius = 0, 0, 0
 radius_1, radius_2, radius_3, radius_4, radius_5, radius_6 = [0] * 6
+circle_detected = False  # New variable to track if a circle has been detected
 
 def draw_circle(event, x, y, flags, param):
     global mouseX, mouseY
@@ -59,9 +60,9 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
 
     cv2.namedWindow("Detected Circle")
-    cv2.createTrackbar("Param1", "Detected Circle", 1250, 2000, trackbar_change)
+    cv2.createTrackbar("Param1", "Detected Circle", 100, 2000, trackbar_change)
     cv2.createTrackbar("Param2", "Detected Circle", 50, 100, trackbar_change)
-    cv2.createTrackbar("MinRadius", "Detected Circle", 430, 500, trackbar_change)
+    cv2.createTrackbar("MinRadius", "Detected Circle", 135, 500, trackbar_change)
     cv2.createTrackbar("MaxRadius", "Detected Circle", 450, 500, trackbar_change)
     cv2.setMouseCallback("Detected Circle", draw_circle)
 
@@ -74,47 +75,74 @@ if __name__ == "__main__":
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray_blurred = cv2.blur(gray, (3, 3))
 
-        # Get current positions of trackbars
-        param1 = cv2.getTrackbarPos("Param1", "Detected Circle")
-        param2 = cv2.getTrackbarPos("Param2", "Detected Circle")
-        minRadius = cv2.getTrackbarPos("MinRadius", "Detected Circle")
-        maxRadius = cv2.getTrackbarPos("MaxRadius", "Detected Circle")
+        # Only detect circles if one has not been detected yet
+        if not circle_detected:
+            # Get current positions of trackbars
+            param1 = cv2.getTrackbarPos("Param1", "Detected Circle")
+            param2 = cv2.getTrackbarPos("Param2", "Detected Circle")
+            minRadius = cv2.getTrackbarPos("MinRadius", "Detected Circle")
+            maxRadius = cv2.getTrackbarPos("MaxRadius", "Detected Circle")
 
-        # Apply Hough transform
-        detected_circles = cv2.HoughCircles(gray_blurred,
-                                            cv2.HOUGH_GRADIENT, 0.6, 50, 
-                                            param1=param1, param2=param2, 
-                                            minRadius=minRadius, maxRadius=maxRadius)
+            # Apply Hough transform
+            detected_circles = cv2.HoughCircles(gray_blurred,
+                                                cv2.HOUGH_GRADIENT, 0.6, 50, 
+                                                param1=param1, param2=param2, 
+                                                minRadius=minRadius, maxRadius=maxRadius)
 
-        # Draw detected circles
-        if detected_circles is not None:
-            detected_circles = np.uint16(np.around(detected_circles))
-            for pt in detected_circles[0, :]:
-                a, b, r = pt[0], pt[1], pt[2]
-                dartboard_centerX, dartboard_centerY, dartboard_radius = a, b, r
+            if detected_circles is not None:
+                detected_circles = np.uint16(np.around(detected_circles))
+                for pt in detected_circles[0, :]:
+                    a, b, r = pt[0], pt[1], pt[2]
+                    dartboard_centerX, dartboard_centerY, dartboard_radius = a, b, r
+                    circle_detected = True  # Set flag to true as circle is detected
 
-                # Draw the circumference of the circle.
-                cv2.circle(img, (a, b), r, (0, 255, 0), 2)
+                    # Draw the circumference of the circle.
+                    cv2.circle(img, (a, b), r, (0, 255, 0), 2)
 
-                # Draw the dartboard segments and circles
-                for line in range(0, 20):
-                    xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
-                    yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
-                    cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
+                    # Draw the dartboard segments and circles
+                    for line in range(0, 20):
+                        xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
+                        yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
+                        cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
 
-                radius_6 = round(((170 / (451 / 2)) * r))
-                radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-                radius_4 = round(((107 / (451 / 2)) * r))
-                radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-                radius_2 = round(((32 / 451) * r))
-                radius_1 = round(((12.7 / 451) * r))
+                    radius_6 = round(((170 / (451 / 2)) * r))
+                    radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+                    radius_4 = round(((107 / (451 / 2)) * r))
+                    radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+                    radius_2 = round(((32 / 451) * r))
+                    radius_1 = round(((12.7 / 451) * r))
 
-                cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
-                cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
-                cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
-                cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
-                cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
-                cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
+                    cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
+
+        else:
+            # Draw the circumference of the circle.
+            cv2.circle(img, (a, b), r, (0, 255, 0), 2)
+
+            # Draw the dartboard segments and circles
+            for line in range(0, 20):
+                xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
+                yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
+                cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
+
+            radius_6 = round(((170 / (451 / 2)) * r))
+            radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+            radius_4 = round(((107 / (451 / 2)) * r))
+            radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+            radius_2 = round(((32 / 451) * r))
+            radius_1 = round(((12.7 / 451) * r))
+
+            cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
+
 
         cv2.imshow("Detected Circle", img)
         if cv2.waitKey(1) & 0xFF == 27:  # Press 'ESC' to exit
