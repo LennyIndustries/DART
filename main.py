@@ -62,69 +62,69 @@ def get_score():
 
 
 
+if __name__ == "__main__":
+    # Read image.
+    img = cv2.imread('dartboard2.jpg', cv2.IMREAD_COLOR)
 
-# Read image.
-img = cv2.imread('dartboard2.jpg', cv2.IMREAD_COLOR)
+    # Convert to grayscale.
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-# Convert to grayscale.
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Blur using 3 * 3 kernel.
+    gray_blurred = cv2.blur(gray, (3, 3))
 
-# Blur using 3 * 3 kernel.
-gray_blurred = cv2.blur(gray, (3, 3))
+    # Apply Hough transform on the blurred image.
+    detected_circles = cv2.HoughCircles(gray,
+                                        cv2.HOUGH_GRADIENT, 0.6, 50, param1=1250,
+                                        param2=50, minRadius=430, maxRadius=450)
+    print("detected circles:\n{0}".format(detected_circles))
+    # Draw circles that are detected.
+    if detected_circles is not None:
 
-# Apply Hough transform on the blurred image.
-detected_circles = cv2.HoughCircles(gray,
-                                    cv2.HOUGH_GRADIENT, 0.6, 50, param1=1250,
-                                    param2=50, minRadius=430, maxRadius=450)
-print("detected circles:\n{0}".format(detected_circles))
-# Draw circles that are detected.
-if detected_circles is not None:
+        # Convert the circle parameters a, b and r to integers.
+        detected_circles = np.uint16(np.around(detected_circles))
 
-    # Convert the circle parameters a, b and r to integers.
-    detected_circles = np.uint16(np.around(detected_circles))
+        for pt in detected_circles[0, :]:
+            a, b, r = pt[0], pt[1], pt[2]
+            dartboard_centerX = a
+            dartboard_centerY = b
+            dartboard_radius = r
 
-    for pt in detected_circles[0, :]:
-        a, b, r = pt[0], pt[1], pt[2]
-        dartboard_centerX = a
-        dartboard_centerY = b
-        dartboard_radius = r
+            print("X: " + str(a) + ", Y: " + str(b) + ", R: " + str(r))
 
-        print("X: " + str(a) + ", Y: " + str(b) + ", R: " + str(r))
+            # Draw the circumference of the circle.
+            cv2.circle(img, (a, b), r, (0, 255, 0), 2)
 
-        # Draw the circumference of the circle.
-        cv2.circle(img, (a, b), r, (0, 255, 0), 2)
+            '''
+            Draw lines
+            Center: a, b
+            20 triangles
+            360° / 20 = 18°
+            '''
+            for line in range(0, 20):
+                xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
+                yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
+                cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
 
-        '''
-        Draw lines
-        Center: a, b
-        20 triangles
-        360° / 20 = 18°
-        '''
-        for line in range(0, 20):
-            xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
-            yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
-            cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
+            radius_6 = round(((170 / (451 / 2)) * r))
+            radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+            radius_4 = round(((107 / (451 / 2)) * r))
+            radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+            radius_2 = round(((32 / 451) * r))
+            radius_1 = round(((12.7 / 451) * r))
 
-        radius_6 = round(((170 / (451 / 2)) * r))
-        radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-        radius_4 = round(((107 / (451 / 2)) * r))
-        radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-        radius_2 = round(((32 / 451) * r))
-        radius_1 = round(((12.7 / 451) * r))
+            log.debug(f'\nR1: {radius_1}\nR2: {radius_2}\nR3: {radius_3}\nR4: {radius_4}\nR5: {radius_5}\nR6: {radius_6}')
 
-        log.debug(f'\nR1: {radius_1}\nR2: {radius_2}\nR3: {radius_3}\nR4: {radius_4}\nR5: {radius_5}\nR6: {radius_6}')
+            cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
+            cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
 
-        cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
-        cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
-        cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
-        cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
-        cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
-        cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
+            cv2.namedWindow("Detected Circle")
+            cv2.setMouseCallback("Detected Circle", draw_circle)
 
-        cv2.namedWindow("Detected Circle")
-        cv2.setMouseCallback("Detected Circle", draw_circle)
-
-        while 1:
-            cv2.imshow("Detected Circle", img)
-            if cv2.waitKey(20) & 0xFF == 27:
-                break
+            while 1:
+                cv2.imshow("Detected Circle", img)
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break
