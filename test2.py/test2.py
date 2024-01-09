@@ -11,6 +11,7 @@ mouseX, mouseY = 0, 0
 dartboard_centerX, dartboard_centerY, dartboard_radius = 0, 0, 0
 radius_1, radius_2, radius_3, radius_4, radius_5, radius_6 = [0] * 6
 circle_detected = False  # New variable to track if a circle has been detected
+dart_detected = False
 
 def draw_circle(event, x, y, flags, param):
     global mouseX, mouseY
@@ -143,7 +144,22 @@ if __name__ == "__main__":
             cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
             cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
 
+        if circle_detected:
+            # Preprocess the image for dart detection
+            ret, thresh = cv2.threshold(gray_blurred, 127, 255, 0)
+            contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+            for contour in contours:
+                M = cv2.moments(contour)
+                if M['m00'] != 0 and cv2.contourArea(contour) < 100:  # Adjust area threshold as needed
+                    dartX = int(M['m10'] / M['m00'])
+                    dartY = int(M['m01'] / M['m00'])
+                    dart_detected = True
+                    cv2.circle(img, (dartX, dartY), 5, (0, 0, 255), -1)
+                   
+                   
+
+        # Display the resulting frame
         cv2.imshow("Detected Circle", img)
         if cv2.waitKey(1) & 0xFF == 27:  # Press 'ESC' to exit
             break
