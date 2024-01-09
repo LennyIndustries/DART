@@ -27,6 +27,20 @@ def draw_circle(event, x, y, flags, param):
 
 
 def get_score(**kwargs):
+    """
+    Calculate the score based on dartboard and dart coordinates.
+
+    Parameters:
+    - dartboard_coordinates (tuple): Tuple containing the (x, y) coordinates of the dartboard center.
+    - dart_coordinates (tuple): Tuple containing the (x, y) coordinates of the dart.
+    - dartboard_radius (float): Radius of the dartboard.
+
+    Returns:
+    - int: The calculated score.
+
+    Raises:
+    - ValueError: If required parameters are missing or if coordinate tuples do not have exactly 2 values.
+    """
     # Check params
     required_params = ['dartboard_coordinates', 'dart_coordinates', 'dartboard_radius']
     for param in required_params:
