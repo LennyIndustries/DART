@@ -149,12 +149,13 @@ if __name__ == "__main__":
             ret, thresh = cv2.threshold(gray_blurred, 127, 255, 0)
             contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            for contour in contours:
-                M = cv2.moments(contour)
-                if M['m00'] != 0 and cv2.contourArea(contour) < 100:  # Adjust area threshold as needed
+            # Find the largest contour
+            largest_contour = max(contours, key=cv2.contourArea, default=None)
+            if largest_contour is not None and cv2.contourArea(largest_contour) > 20:  # Adjust minimum area threshold
+                M = cv2.moments(largest_contour)
+                if M['m00'] != 0:
                     dartX = int(M['m10'] / M['m00'])
                     dartY = int(M['m01'] / M['m00'])
-                    dart_detected = True
                     cv2.circle(img, (dartX, dartY), 5, (0, 0, 255), -1)
                    
                    
