@@ -144,14 +144,29 @@ if __name__ == "__main__":
             cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
             cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
 
-        if circle_detected:
-            # Preprocess the image for dart detection
-            ret, thresh = cv2.threshold(gray_blurred, 127, 255, 0)
-            contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # Convert to HSV color space
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-            # Find the largest contour
+        # Define range for red color in HSV
+        lower_red = np.array([0, 120, 70])
+        upper_red = np.array([10, 255, 255])
+        mask1 = cv2.inRange(hsv, lower_red, upper_red)
+
+        # Second range to cover the wrap-around in hue value
+        lower_red = np.array([170, 120, 70])
+        upper_red = np.array([180, 255, 255])
+        mask2 = cv2.inRange(hsv, lower_red, upper_red)
+
+        # Combine both masks
+        mask = mask1 + mask2
+
+        # Find contours in the mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Dart detection (similar to previous logic, but using contours from the mask)
+        if circle_detected:
             largest_contour = max(contours, key=cv2.contourArea, default=None)
-            if largest_contour is not None and cv2.contourArea(largest_contour) > 20:  # Adjust minimum area threshold
+            if largest_contour is not None and cv2.contourArea(largest_contour) > 20:  # Adjust threshold
                 M = cv2.moments(largest_contour)
                 if M['m00'] != 0:
                     dartX = int(M['m10'] / M['m00'])
