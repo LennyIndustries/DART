@@ -16,38 +16,84 @@ def draw_circle(event, x, y, flags, param):
         cv2.circle(img, (x, y), 2, (255, 255, 0), -1)
         mouseX, mouseY = x, y
         log.debug(f'X: {str(x)} Y: {str(y)}')
-        get_score()
+        try:
+            dartboard_coordinates = (dartboard_centerX, dartboard_centerY)
+            dart_coordinates = (x, y)
+            get_score(dartboard_coordinates=dartboard_coordinates, dart_coordinates=dart_coordinates, dartboard_radius=dartboard_radius)
+        except ValueError as e:
+            log.exception(f'Error: {e}')
+        except Exception as e:
+            log.exception(f'An unexpected error occurred: {e}')
 
 
 def get_score(**kwargs):
-    distance_from_center = math.sqrt((kwargs['mouseX'] - kwargs['dartboard_center_x']) ** 2 + (kwargs['mouse_y'] - kwargs['dartboard_center_y']) ** 2)
+    """
+    Calculate the score based on dartboard and dart coordinates.
+
+    Parameters:
+    - dartboard_coordinates (tuple): Tuple containing the (x, y) coordinates of the dartboard center.
+    - dart_coordinates (tuple): Tuple containing the (x, y) coordinates of the dart.
+    - dartboard_radius (float): Radius of the dartboard.
+
+    Returns:
+    - int: The calculated score.
+
+    Raises:
+    - ValueError: If required parameters are missing or if coordinate tuples do not have exactly 2 values.
+    """
+    # Check params
+    required_params = ['dartboard_coordinates', 'dart_coordinates', 'dartboard_radius']
+    for param in required_params:
+        if param not in kwargs:
+            raise ValueError(f'Missing required parameter: {param}')
+    # Check the number of values in each tuple
+    if len(kwargs['dartboard_coordinates']) != 2:
+        raise ValueError(f'Dartboard coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dartboard_coordinates"])} values.')
+    if len(kwargs['dart_coordinates']) != 2:
+        raise ValueError(f'Dart coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dart_coordinates"])} values.')
+    # Extract coordinates
+    dart_x, dart_y = kwargs['dart_coordinates']
+    dartboard_center_x, dartboard_center_y = kwargs['dartboard_coordinates']
+    # Calculate distance from center
+    distance_from_center = math.sqrt((dart_x - dartboard_center_x) ** 2 + (dart_y - dartboard_center_y) ** 2)
+    # Calculate angle
     # 18° per score; 9° offset
-    angle = math.atan2(kwargs['mouse_y'] - kwargs['dartboard_center_y'], kwargs['mouse_x'] - kwargs['dartboard_center_x'])
-    angle = math.degrees(angle)
-    angle += (9 + (5 * 18))
-    angle = (angle + 360) % 360
+    angle = math.atan2(dart_y - dartboard_center_y, dart_x - dartboard_center_x)  # Get angle
+    angle = math.degrees(angle)  # Convert to degrees
+    angle += (9 + (5 * 18))  # Apply offset, left of 20 is 0°, right of 20 is 18°, continues to increase clockwise
+    angle = (angle + 360) % 360  # Get back to a 360° circle
+    # Calculate radii
+    bull = round(((12.7 / 451) * r))
+    iris = round(((32 / 451) * r))
+    triple_inner = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+    triple_outer = round(((107 / (451 / 2)) * r))
+    double_inner = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
+    double_outer = round(((170 / (451 / 2)) * r))  # Also end of board
+    # Score map
     # 20 -> 1 -> 18 -> 4 -> 13 -> 6 -> 10 -> 15 -> 2 -> 17 -> 3 -> 19 -> 7 -> 16 -> 8 -> 11 -> 14 -> 9 -> 12 -> 5
     score_array = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
     log.debug(f'Distance from center: {distance_from_center}; Angle: {angle}')
+    # Default multiplier
     multiplier = 1
+    # Score logic
     # Bull
-    if 0 < distance_from_center < radius_1:
+    if 0 < distance_from_center < bull:
         log.info(f'Bull: 50')
         return 50
     # Iris
-    elif radius_1 < distance_from_center < radius_2:
+    elif bull < distance_from_center < iris:
         log.info(f'Iris: 25')
         return 25
     # Triple ring
-    if radius_3 < distance_from_center < radius_4:
+    if triple_inner < distance_from_center < triple_outer:
         log.info(f'Triple: score * 3')
         multiplier = 3
     # Double ring
-    elif radius_5 < distance_from_center < radius_6:
+    elif double_inner < distance_from_center < double_outer:
         log.info(f'Double: score * 2')
         multiplier = 2
     # Out of bounds
-    if radius_6 < distance_from_center:
+    if double_outer < distance_from_center:
         log.info(f'Out of bounds: 0')
         return 0
     # Other
