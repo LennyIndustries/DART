@@ -195,28 +195,28 @@ if __name__ == "__main__":
                     dartboard_center_x, dartboard_center_y, dartboard_radius = pt[0], pt[1], pt[2]
                     circle_detected = True
 
-                    # Draw the circumference of the circle and segments
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), dartboard_radius, (0, 255, 0), 2)
-                    for line in range(0, 20):
-                        xPos = round(dartboard_center_x + (dartboard_radius * math.cos(math.radians(9 + 18 * line))))
-                        yPos = round(dartboard_center_y + (dartboard_radius * math.sin(math.radians(9 + 18 * line))))
-                        cv2.line(img, (dartboard_center_x, dartboard_center_y), (xPos, yPos), (255, 0, 0), 1)
+        # Draw the circumference of the circle and segments
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), dartboard_radius, (0, 255, 0), 2)
+        for line in range(0, 20):
+            xPos = round(dartboard_center_x + (dartboard_radius * math.cos(math.radians(9 + 18 * line))))
+            yPos = round(dartboard_center_y + (dartboard_radius * math.sin(math.radians(9 + 18 * line))))
+            cv2.line(img, (dartboard_center_x, dartboard_center_y), (xPos, yPos), (255, 0, 0), 1)
 
-                    # Calculate radii of dartboard zones
-                    radius_6 = round(((170 / (451 / 2)) * dartboard_radius))
-                    radius_5 = round(((170 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
-                    radius_4 = round(((107 / (451 / 2)) * dartboard_radius))
-                    radius_3 = round(((107 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
-                    radius_2 = round(((32 / 451) * dartboard_radius))
-                    radius_1 = round(((12.7 / 451) * dartboard_radius))
+        # Calculate radii of dartboard zones
+        radius_6 = round(((170 / (451 / 2)) * dartboard_radius))
+        radius_5 = round(((170 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
+        radius_4 = round(((107 / (451 / 2)) * dartboard_radius))
+        radius_3 = round(((107 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
+        radius_2 = round(((32 / 451) * dartboard_radius))
+        radius_1 = round(((12.7 / 451) * dartboard_radius))
 
-                    # Draw inner circles
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_1, (255, 0, 255), 1)
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_2, (255, 0, 255), 1)
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_3, (255, 0, 255), 1)
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_4, (255, 0, 255), 1)
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_5, (255, 0, 255), 1)
-                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_6, (255, 0, 255), 1)
+        # Draw inner circles
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_1, (255, 0, 255), 1)
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_2, (255, 0, 255), 1)
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_3, (255, 0, 255), 1)
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_4, (255, 0, 255), 1)
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_5, (255, 0, 255), 1)
+        cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_6, (255, 0, 255), 1)
 
         # Convert to HSV color space for red dart detection
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
