@@ -19,7 +19,7 @@ def get_score(**kwargs):
     - current_score (int / numpy.uint16): The current score, may not be negative. [Default = 0]
 
     Returns:
-    - int: The calculated score.
+    - numpy.uint16: The calculated score.
 
     Raises:
     - ValueError: Missing parameter, data type mismatch, negative current_score, tuple does not have exactly 2 values
