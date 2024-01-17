@@ -143,7 +143,7 @@ def get_score(**kwargs):
 
     log.info(f'Score: {score} + {current_score}')
     # Total score
-    total_score = score + current_score
+    total_score = np.uint16(score + current_score)
     # Return the score
     return total_score
 
