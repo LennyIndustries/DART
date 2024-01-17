@@ -1,30 +1,11 @@
 import logging as log
 import math
+import time
 
 import cv2
 import numpy as np
 
-global mouseX, mouseY
-global dartboard_centerX, dartboard_centerY, dartboard_radius
-global radius_1, radius_2, radius_3, radius_4, radius_5, radius_6
-
 log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
-def draw_circle(event, x, y, flags, param):
-    global mouseX, mouseY
-    if event == cv2.EVENT_LBUTTONDOWN:
-        cv2.circle(img, (x, y), 2, (255, 255, 0), -1)
-        mouseX, mouseY = x, y
-        log.debug(f'X: {str(x)} Y: {str(y)}')
-        try:
-            dartboard_coordinates = (dartboard_centerX, dartboard_centerY)
-            dart_coordinates = (x, y)
-            get_score(dartboard_coordinates=dartboard_coordinates, dart_coordinates=dart_coordinates, dartboard_radius=dartboard_radius)
-        except ValueError as e:
-            log.exception(f'Error: {e}')
-        except Exception as e:
-            log.exception(f'An unexpected error occurred: {e}')
 
 
 def get_score(**kwargs):
@@ -41,8 +22,9 @@ def get_score(**kwargs):
     - int: The calculated score.
 
     Raises:
-    - ValueError: If required parameters are missing or if coordinate tuples do not have exactly 2 values or if an optional parameter is negative.
+    - ValueError: Missing parameter, data type mismatch, negative current_score, tuple does not have exactly 2 values
     """
+
     # Local variables
     dartboard_center_x = dartboard_center_y = dart_x = dart_y = dartboard_radius = current_score = 0
 
@@ -166,70 +148,111 @@ def get_score(**kwargs):
     return total_score
 
 
+def trackbar_change(x):
+    pass
+
+
 if __name__ == "__main__":
-    # Read image.
-    img = cv2.imread('dartboard2.jpg', cv2.IMREAD_COLOR)
+    dartboard_center_x = dartboard_center_y = dart_x = dart_y = dartboard_radius = last_score_time = 0
+    circle_detected = dart_detected = False
+    # Initialize camera
+    cap = cv2.VideoCapture(0)
 
-    # Convert to grayscale.
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cv2.namedWindow("Detected Circle")
+    cv2.createTrackbar("Param1", "Detected Circle", 100, 2000, trackbar_change)
+    cv2.createTrackbar("Param2", "Detected Circle", 50, 100, trackbar_change)
+    cv2.createTrackbar("MinRadius", "Detected Circle", 135, 500, trackbar_change)
+    cv2.createTrackbar("MaxRadius", "Detected Circle", 450, 500, trackbar_change)
 
-    # Blur using 3 * 3 kernel.
-    gray_blurred = cv2.blur(gray, (3, 3))
+    while True:
+        ret, img = cap.read()
+        if not ret:
+            break
 
-    # Apply Hough transform on the blurred image.
-    detected_circles = cv2.HoughCircles(gray,
-                                        cv2.HOUGH_GRADIENT, 0.6, 50, param1=1250,
-                                        param2=50, minRadius=430, maxRadius=450)
-    print("detected circles:\n{0}".format(detected_circles))
-    # Draw circles that are detected.
-    if detected_circles is not None:
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray_blurred = cv2.blur(gray, (3, 3))
 
-        # Convert the circle parameters a, b and r to integers.
-        detected_circles = np.uint16(np.around(detected_circles))
+        # Detect circles if not already detected
+        if not circle_detected:
+            # Get current positions of trackbars
+            param1 = cv2.getTrackbarPos("Param1", "Detected Circle")
+            param2 = cv2.getTrackbarPos("Param2", "Detected Circle")
+            minRadius = cv2.getTrackbarPos("MinRadius", "Detected Circle")
+            maxRadius = cv2.getTrackbarPos("MaxRadius", "Detected Circle")
 
-        for pt in detected_circles[0, :]:
-            a, b, r = pt[0], pt[1], pt[2]
-            dartboard_centerX = a
-            dartboard_centerY = b
-            dartboard_radius = r
+            # Apply Hough transform
+            detected_circles = cv2.HoughCircles(gray_blurred,
+                                                cv2.HOUGH_GRADIENT, 0.6, 50,
+                                                param1=param1, param2=param2,
+                                                minRadius=minRadius, maxRadius=maxRadius)
 
-            print("X: " + str(a) + ", Y: " + str(b) + ", R: " + str(r))
+            # Draw circles and calculate dartboard dimensions
+            if detected_circles is not None:
+                detected_circles = np.uint16(np.around(detected_circles))
+                for pt in detected_circles[0, :]:
+                    dartboard_center_x, dartboard_center_y, dartboard_radius = pt[0], pt[1], pt[2]
+                    circle_detected = True
 
-            # Draw the circumference of the circle.
-            cv2.circle(img, (a, b), r, (0, 255, 0), 2)
+                    # Draw the circumference of the circle and segments
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), dartboard_radius, (0, 255, 0), 2)
+                    for line in range(0, 20):
+                        xPos = round(dartboard_center_x + (dartboard_radius * math.cos(math.radians(9 + 18 * line))))
+                        yPos = round(dartboard_center_y + (dartboard_radius * math.sin(math.radians(9 + 18 * line))))
+                        cv2.line(img, (dartboard_center_x, dartboard_center_y), (xPos, yPos), (255, 0, 0), 1)
 
-            '''
-            Draw lines
-            Center: a, b
-            20 triangles
-            360° / 20 = 18°
-            '''
-            for line in range(0, 20):
-                xPos = round(a + (r * math.cos(math.radians(9 + 18 * line))))
-                yPos = round(b + (r * math.sin(math.radians(9 + 18 * line))))
-                cv2.line(img, (a, b), (xPos, yPos), (255, 0, 0), 1)
+                    # Calculate radii of dartboard zones
+                    radius_6 = round(((170 / (451 / 2)) * dartboard_radius))
+                    radius_5 = round(((170 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
+                    radius_4 = round(((107 / (451 / 2)) * dartboard_radius))
+                    radius_3 = round(((107 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
+                    radius_2 = round(((32 / 451) * dartboard_radius))
+                    radius_1 = round(((12.7 / 451) * dartboard_radius))
 
-            radius_6 = round(((170 / (451 / 2)) * r))
-            radius_5 = round(((170 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-            radius_4 = round(((107 / (451 / 2)) * r))
-            radius_3 = round(((107 / (451 / 2)) * r) - ((8 / (451 / 2)) * r))
-            radius_2 = round(((32 / 451) * r))
-            radius_1 = round(((12.7 / 451) * r))
+                    # Draw inner circles
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_1, (255, 0, 255), 1)
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_2, (255, 0, 255), 1)
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_3, (255, 0, 255), 1)
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_4, (255, 0, 255), 1)
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_5, (255, 0, 255), 1)
+                    cv2.circle(img, (dartboard_center_x, dartboard_center_y), radius_6, (255, 0, 255), 1)
 
-            log.debug(
-                f'\nR1: {radius_1}\nR2: {radius_2}\nR3: {radius_3}\nR4: {radius_4}\nR5: {radius_5}\nR6: {radius_6}')
+        # Convert to HSV color space for red dart detection
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        lower_red = np.array([0, 120, 70])
+        upper_red = np.array([10, 255, 255])
+        mask1 = cv2.inRange(hsv, lower_red, upper_red)
 
-            cv2.circle(img, (a, b), radius_1, (255, 0, 255), 1)
-            cv2.circle(img, (a, b), radius_2, (255, 0, 255), 1)
-            cv2.circle(img, (a, b), radius_3, (255, 0, 255), 1)
-            cv2.circle(img, (a, b), radius_4, (255, 0, 255), 1)
-            cv2.circle(img, (a, b), radius_5, (255, 0, 255), 1)
-            cv2.circle(img, (a, b), radius_6, (255, 0, 255), 1)
+        # Second range to cover hue value wrap-around
+        lower_red = np.array([170, 120, 70])
+        upper_red = np.array([180, 255, 255])
+        mask2 = cv2.inRange(hsv, lower_red, upper_red)
+        mask = mask1 + mask2
 
-            cv2.namedWindow("Detected Circle")
-            cv2.setMouseCallback("Detected Circle", draw_circle)
+        # Find contours in the mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            while 1:
-                cv2.imshow("Detected Circle", img)
-                if cv2.waitKey(20) & 0xFF == 27:
-                    break
+        # Dart detection and position update
+        if circle_detected:
+            largest_contour = max(contours, key=cv2.contourArea, default=None)
+            if largest_contour is not None and cv2.contourArea(largest_contour) > 20:  # Adjust threshold
+                M = cv2.moments(largest_contour)
+                if M['m00'] != 0:
+                    dart_x = int(M['m10'] / M['m00'])
+                    dart_y = int(M['m01'] / M['m00'])
+                    cv2.circle(img, (dart_x, dart_y), 5, (0, 0, 255), -1)
+                    dart_detected = True
+
+        # Periodic score calculation every 5 seconds
+        if dart_detected and (time.time() - last_score_time > 5):
+            score = get_score(dart_coordinates=(dart_x, dart_y), dartboard_coordinates=(dartboard_center_x, dartboard_center_y), dartboard_radius=dartboard_radius, current_score=0)
+            log.debug(f'Score: {score}')
+            last_score_time = time.time()
+
+        # Display the resulting frame
+        cv2.imshow("Detected Circle", img)
+        if cv2.waitKey(1) & 0xFF == 27:  # Press 'ESC' to exit
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
