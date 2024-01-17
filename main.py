@@ -35,9 +35,7 @@ def get_score(**kwargs):
     - dartboard_coordinates (tuple): Tuple containing the (x, y) coordinates of the dartboard center (int / numpy.uint16, int / numpy.uint16).
     - dart_coordinates (tuple): Tuple containing the (x, y) coordinates of the dart (int / numpy.uint16, int / numpy.uint16).
     - dartboard_radius (int / numpy.uint16): Radius of the dartboard.
-    - last_round (bool): Whether the function should consider if it is the last round or not. [Default = False]
     - current_score (int / numpy.uint16): The current score, may not be negative. [Default = 0]
-    - max_score (int / numpy.uint16): The score at which the player can win, may not be negative. [Default = 501]
 
     Returns:
     - int: The calculated score.
@@ -47,12 +45,14 @@ def get_score(**kwargs):
     """
     # Local variables
     dartboard_center_x = dartboard_center_y = dart_x = dart_y = dartboard_radius = current_score = 0
-    max_score = 501
-    last_round = can_win = False
 
-    # Check params
+    """
+    Check the parameters:
+    - Required must be provided
+    - Optional may be provided
+    """
     required_params = ['dartboard_coordinates', 'dart_coordinates', 'dartboard_radius']
-    optional_params = ['last_round', 'current_score', 'max_score']
+    optional_params = ['current_score']
     # Required
     for param in required_params:
         if param not in kwargs:
@@ -60,52 +60,47 @@ def get_score(**kwargs):
         if (param == 'dartboard_coordinates' or param == 'dart_coordinates') and not isinstance(kwargs[param], tuple):
             raise ValueError(f'{param} must be of type tuple, got {type(kwargs[param])}')  # Parameter is not the expected data type
         if param == 'dartboard_radius' and not isinstance(kwargs[param], (int, np.uint16)):
-            raise ValueError(f'{param} must be of type integer or numpy.uint16, got {type(kwargs[param])}')
+            raise ValueError(f'{param} must be of type integer or numpy.uint16, got {type(kwargs[param])}')  # Parameter is not the expected data type
     # Optional
     for param in kwargs:
-        if param not in optional_params:
+        if param not in optional_params:  # Parameter is required and already checked
             continue
-        if param == 'last_round':
-            if isinstance(kwargs[param], bool):
-                last_round = kwargs['last_round']
-            else:
-                raise ValueError(f'{param} must be of type boolean, got {type(kwargs[param])}')
         elif param == 'current_score':
             if kwargs['current_score'] < 0:
-                raise ValueError(f'{param} can not be lower than 0')
+                raise ValueError(f'{param} can not be lower than 0')  # Parameter is negative
             elif not isinstance(kwargs[param], (int, np.uint16)):
-                raise ValueError(f'{param} must be of type integer or numpy.uint16, got {type(kwargs[param])}')
+                raise ValueError(f'{param} must be of type integer or numpy.uint16, got {type(kwargs[param])}')  # Parameter is not the expected data type
             else:
                 current_score = kwargs['current_score']
-        elif param == 'max_score':
 
-            if kwargs['max_score'] < 0:
-                raise ValueError(f'{param} can not be lower than 0')
-            elif not isinstance(kwargs[param], (int, np.uint16)):
-                raise ValueError(f'{param} must be of type integer or numpy.uint16, got {type(kwargs[param])}')
-            else:
-                max_score = kwargs['max_score']
-
-    # Check the number of values and data type in each tuple
+    """
+    Check the tuples, count and data type
+    """
     if len(kwargs['dartboard_coordinates']) != 2:
-        raise ValueError(f'Dartboard coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dartboard_coordinates"])} values.')
+        raise ValueError(f'Dartboard coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dartboard_coordinates"])} values.')  # Tuple does not have exactly 2 values
     elif not isinstance(kwargs['dartboard_coordinates'][0], (int, np.uint16)):
-        raise ValueError(f'Dartboard coordinates must of type integer or numpy.uint16, got {type(kwargs["dartboard_coordinates"][0])} [0]')
+        raise ValueError(f'Dartboard coordinates must of type integer or numpy.uint16, got {type(kwargs["dartboard_coordinates"][0])} [0]')  # Parameter is not the expected data type
     elif not isinstance(kwargs['dartboard_coordinates'][1], (int, np.uint16)):
-        raise ValueError(f'Dartboard coordinates must of type integer or numpy.uint16, got {type(kwargs["dartboard_coordinates"][1])} [1]')
+        raise ValueError(f'Dartboard coordinates must of type integer or numpy.uint16, got {type(kwargs["dartboard_coordinates"][1])} [1]')  # Parameter is not the expected data type
     if len(kwargs['dart_coordinates']) != 2:
-        raise ValueError(f'Dart coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dart_coordinates"])} values.')
+        raise ValueError(f'Dart coordinates should have exactly 2 values, X and Y, but got {len(kwargs["dart_coordinates"])} values.')  # Tuple does not have exactly 2 values
     elif not isinstance(kwargs['dart_coordinates'][0], (int, np.uint16)):
-        raise ValueError(f'Dart coordinates must of type integer or numpy.uint16, got {type(kwargs["dart_coordinates"][0])} [0]')
+        raise ValueError(f'Dart coordinates must of type integer or numpy.uint16, got {type(kwargs["dart_coordinates"][0])} [0]')  # Parameter is not the expected data type
     elif not isinstance(kwargs['dart_coordinates'][1], (int, np.uint16)):
-        raise ValueError(f'Dart coordinates must of type integer or numpy.uint16, got {type(kwargs["dart_coordinates"][1])} [1]')
+        raise ValueError(f'Dart coordinates must of type integer or numpy.uint16, got {type(kwargs["dart_coordinates"][1])} [1]')  # Parameter is not the expected data type
 
+    """
+    Extract the data
+    """
     # Extract coordinates
     dart_x, dart_y = kwargs['dart_coordinates']
     dartboard_center_x, dartboard_center_y = kwargs['dartboard_coordinates']
     # Get dartboard radius
     dartboard_radius = kwargs['dartboard_radius']
 
+    """
+    Black magic AKA Math
+    """
     # Calculate distance from center
     distance_from_center = math.sqrt((dart_x - dartboard_center_x) ** 2 + (dart_y - dartboard_center_y) ** 2)
 
@@ -124,22 +119,23 @@ def get_score(**kwargs):
     double_inner = round(((170 / (451 / 2)) * dartboard_radius) - ((8 / (451 / 2)) * dartboard_radius))
     double_outer = round(((170 / (451 / 2)) * dartboard_radius))  # Also end of board
 
-    # Score map
-    # 20 -> 1 -> 18 -> 4 -> 13 -> 6 -> 10 -> 15 -> 2 -> 17 -> 3 -> 19 -> 7 -> 16 -> 8 -> 11 -> 14 -> 9 -> 12 -> 5
+    """
+    Map the possible scores on the dartboard, going clockwise from 20 (top)
+    """
     score_array = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
     log.debug(f'Distance from center: {distance_from_center}; Angle: {angle}')
 
-    # Score logic
+    """
+    Calculate the score based on the location of the dart
+    """
     multiplier = 1
     skip_score_calculation = False
     score = 0
-    total_score = 0
 
     # Bull
     if 0 < distance_from_center < bull:
         log.info(f'Bull: 50')
         score = 50
-        can_win = True
         skip_score_calculation = True
     # Iris
     elif bull < distance_from_center < iris:
@@ -154,28 +150,18 @@ def get_score(**kwargs):
     elif double_inner < distance_from_center < double_outer:
         log.info(f'Double: score * 2')
         multiplier = 2
-        can_win = True
     # Out of bounds
     if double_outer < distance_from_center:
         log.info(f'Out of bounds: 0')
-        skip_score_calculation = True
     # Calculate score
     elif not skip_score_calculation:
         for idx, calc in enumerate(range(0, 360, 18)):
             if calc < angle < (calc + 18):
                 score = score_array[idx] * multiplier
-                log.info(f'Score: {score}')
 
+    log.info(f'Score: {score} + {current_score}')
     # Total score
     total_score = score + current_score
-
-    # Checks if the player does get the core or not
-    if last_round and not can_win:
-        total_score = current_score
-    if last_round and can_win:
-        if total_score > max_score:
-            total_score = current_score
-
     # Return the score
     return total_score
 
